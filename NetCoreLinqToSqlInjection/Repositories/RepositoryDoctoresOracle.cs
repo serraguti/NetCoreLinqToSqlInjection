@@ -1,6 +1,20 @@
-﻿using NetCoreLinqToSqlInjection.Models;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using NetCoreLinqToSqlInjection.Models;
 using Oracle.ManagedDataAccess.Client;
 using System.Data;
+
+#region PROCEDIMIENTOS ALMACENADOS
+
+//--LENGUAJE PL / SQL
+//create or replace procedure sp_delete_doctor
+//(p_iddoctor DOCTOR.DOCTOR_NO%TYPE)
+//as
+//begin
+//  delete from DOCTOR where DOCTOR_NO=p_iddoctor;
+//commit;
+//end;
+
+#endregion
 
 namespace NetCoreLinqToSqlInjection.Repositories
 {
@@ -21,6 +35,19 @@ namespace NetCoreLinqToSqlInjection.Repositories
             OracleDataAdapter ad = new OracleDataAdapter(sql, this.cn);
             this.tablaDoctores = new DataTable();
             ad.Fill(this.tablaDoctores);
+        }
+
+        public void DeleteDoctor(int idDoctor)
+        {
+            OracleParameter pamIdDoctor = 
+                new OracleParameter(":p_iddoctor", idDoctor);
+            this.com.Parameters.Add(pamIdDoctor);
+            this.com.CommandType = CommandType.StoredProcedure;
+            this.com.CommandText = "sp_delete_doctor";
+            this.cn.Open();
+            int af = this.com.ExecuteNonQuery();
+            this.cn.Close();
+            this.com.Parameters.Clear();
         }
 
         public List<Doctor> GetDoctores()
@@ -47,7 +74,8 @@ namespace NetCoreLinqToSqlInjection.Repositories
         public List<Doctor> GetDoctoresEspecialidad(string especialidad)
         {
             var consulta = from datos in this.tablaDoctores.AsEnumerable()
-                           where datos.Field<string>("ESPECIALIDAD") == especialidad
+                           where datos.Field<string>("ESPECIALIDAD").ToUpper()
+                           == especialidad.ToUpper()
                            select datos;
             if (consulta.Count() == 0)
             {

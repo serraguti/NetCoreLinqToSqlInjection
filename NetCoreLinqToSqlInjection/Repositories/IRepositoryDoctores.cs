@@ -10,5 +10,6 @@ namespace NetCoreLinqToSqlInjection.Repositories
             , int salario, int idHospital);
 
         List<Doctor> GetDoctoresEspecialidad(string especialidad);
+        void DeleteDoctor(int idDoctor);
     }
 }
