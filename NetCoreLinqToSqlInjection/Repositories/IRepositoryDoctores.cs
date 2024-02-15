@@ -8,5 +8,7 @@ namespace NetCoreLinqToSqlInjection.Repositories
         void InsertDoctor
             (int id, string apellido, string especialidad
             , int salario, int idHospital);
+
+        List<Doctor> GetDoctoresEspecialidad(string especialidad);
     }
 }

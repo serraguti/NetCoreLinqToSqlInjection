@@ -1,29 +1,31 @@
 ﻿using NetCoreLinqToSqlInjection.Models;
+using Oracle.ManagedDataAccess.Client;
 using System.Data;
-using System.Data.SqlClient;
 
 namespace NetCoreLinqToSqlInjection.Repositories
 {
-    public class RepositoryDoctoresSQLServer: IRepositoryDoctores
+    public class RepositoryDoctoresOracle : IRepositoryDoctores
     {
         private DataTable tablaDoctores;
-        private SqlConnection cn;
-        private SqlCommand com;
+        private OracleConnection cn;
+        private OracleCommand com;
 
-        public RepositoryDoctoresSQLServer()
+        public RepositoryDoctoresOracle()
         {
-            string connectionString = @"Data Source=LOCALHOST\SQLEXPRESS;Initial Catalog=HOSPITAL;Persist Security Info=True;User ID=SA;Password=MCSD2023";
-            this.cn = new SqlConnection(connectionString);
-            this.com = new SqlCommand();
+            string connectionString = 
+                @"Data Source=LOCALHOST:1521/XE; Persist Security Info=True; User Id=SYSTEM; Password=oracle";
+            this.cn = new OracleConnection(connectionString);
+            this.com = new OracleCommand();
             this.com.Connection = this.cn;
-            this.tablaDoctores = new DataTable();
             string sql = "select * from DOCTOR";
-            SqlDataAdapter ad = new SqlDataAdapter(sql, this.cn);
+            OracleDataAdapter ad = new OracleDataAdapter(sql, this.cn);
+            this.tablaDoctores = new DataTable();
             ad.Fill(this.tablaDoctores);
         }
 
         public List<Doctor> GetDoctores()
         {
+            //LA VENTAJA DE LINQ ES QUE SE ABSTRAE DEL ORIGEN DE DATOS
             var consulta = from datos in this.tablaDoctores.AsEnumerable()
                            select datos;
             List<Doctor> doctores = new List<Doctor>();
@@ -40,25 +42,6 @@ namespace NetCoreLinqToSqlInjection.Repositories
                 doctores.Add(doc);
             }
             return doctores;
-        }
-
-        public void InsertDoctor
-            (int id, string apellido, string especialidad
-            , int salario, int idHospital)
-        {
-            string sql = "insert into DOCTOR values (@idhospital, @iddoctor, @apellido "
-                + ", @especialidad, @salario)";
-            this.com.Parameters.AddWithValue("@idhospital", idHospital);
-            this.com.Parameters.AddWithValue("@iddoctor", id);
-            this.com.Parameters.AddWithValue("@apellido", apellido);
-            this.com.Parameters.AddWithValue("@especialidad", especialidad);
-            this.com.Parameters.AddWithValue("@salario", salario);
-            this.com.CommandType = CommandType.Text;
-            this.com.CommandText = sql;
-            this.cn.Open();
-            int af = this.com.ExecuteNonQuery();
-            this.cn.Close();
-            this.com.Parameters.Clear();
         }
 
         public List<Doctor> GetDoctoresEspecialidad(string especialidad)
@@ -87,6 +70,30 @@ namespace NetCoreLinqToSqlInjection.Repositories
                 }
                 return doctores;
             }
+        }
+
+        public void InsertDoctor(int id, string apellido
+            , string especialidad, int salario, int idHospital)
+        {
+            string sql = "insert into DOCTOR values (:idhospital, :iddoctor "
+                + ", :apellido, :especialidad, :salario)";
+            //ORACLE TIENE EN CUENTA EL ORDEN DE LOS PARAMETROS, NO EL NOMBRE
+            OracleParameter pamIdHospital = new OracleParameter(":idhospital", idHospital);
+            this.com.Parameters.Add(pamIdHospital);
+            OracleParameter pamIdDoctor = new OracleParameter(":iddoctor", id);
+            this.com.Parameters.Add(pamIdDoctor);
+            OracleParameter pamApellido = new OracleParameter(":apellido", apellido);
+            this.com.Parameters.Add(pamApellido);
+            OracleParameter pamEspe = new OracleParameter(":especialidad", especialidad);
+            this.com.Parameters.Add(pamEspe);
+            OracleParameter pamSalario = new OracleParameter(":salario", salario);
+            this.com.Parameters.Add(pamSalario);
+            this.com.CommandType = CommandType.Text;
+            this.com.CommandText = sql;
+            this.cn.Open();
+            int af = this.com.ExecuteNonQuery();
+            this.cn.Close();
+            this.com.Parameters.Clear();
         }
     }
 }
